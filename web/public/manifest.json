@@ -1,0 +1,13 @@
+{
+  "name": "BÍBLIA GAME",
+  "short_name": "BíbliaGame",
+  "description": "Conheça a Palavra. Desafie seus conhecimentos. Viva a Bíblia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D1333",
+  "theme_color": "#172151",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,295 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ─── USUÁRIOS ───────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  avatar        String?
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  title         String    @default("Aprendiz")
+  coins         Int       @default(0)
+  streak        Int       @default(0)
+  lastActiveAt  DateTime?
+  role          String    @default("player") // player, admin, super_admin
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile         Profile?
+  gameSessions    GameSession[]
+  achievements    UserAchievement[]
+  rankings        Ranking[]
+  dailyProgress   DailyChallenge[]
+  favorites       Favorite[]
+  notes           Note[]
+  churchMembers   ChurchMember?
+  tournaments     TournamentPlayer[]
+
+  @@map("users")
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  bio           String?
+  church        String?
+  totalGames    Int      @default(0)
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  accuracy      Float    @default(0)
+  booksMastered String  @default("[]")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// ─── PERGUNTAS ──────────────────────────────────────────
+
+model Question {
+  id            String   @id @default(uuid())
+  text          String
+  type          String   // multiple_choice, true_false, fill_blank, who_said, character, book_order
+  optionA       String?
+  optionB       String?
+  optionC       String?
+  optionD       String?
+  answer        String
+  explanation   String
+  book          String
+  chapter       Int?
+  verse         Int?
+  difficulty    String   @default("easy") // easy, medium, hard, expert, master
+  category      String
+  xp            Int      @default(100)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  gameAnswers   GameAnswer[]
+
+  @@index([book])
+  @@index([difficulty])
+  @@index([category])
+  @@map("questions")
+}
+
+// ─── LIVROS DA BÍBLIA ───────────────────────────────────
+
+model BibleBook {
+  id          String @id @default(uuid())
+  name        String @unique
+  abbrev     String
+  testament   String // old, new
+  chapters    Int
+  order       Int
+
+  @@map("bible_books")
+}
+
+// ─── SESSÕES DE JOGO ────────────────────────────────────
+
+model GameSession {
+  id            String        @id @default(uuid())
+  userId        String
+  gameType      String        // quiz, character, verse, true_false, books, battle
+  difficulty    String?
+  bookFilter    String?
+  score         Int           @default(0)
+  totalXP       Int           @default(0)
+  correct       Int           @default(0)
+  total         Int           @default(0)
+  completed     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers       GameAnswer[]
+
+  @@index([userId])
+  @@index([gameType])
+  @@map("game_sessions")
+}
+
+model GameAnswer {
+  id            String      @id @default(uuid())
+  sessionId     String
+  questionId    String
+  userAnswer    String
+  correct       Boolean
+  xpEarned      Int         @default(0)
+  timeSpent     Int?        // seconds
+
+  session       GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question      Question    @relation(fields: [questionId], references: [id])
+
+  @@map("game_answers")
+}
+
+// ─── CONQUISTAS ─────────────────────────────────────────
+
+model Achievement {
+  id            String  @id @default(uuid())
+  name          String  @unique
+  description   String
+  icon          String
+  category      String
+  requirement   Int
+  xpReward      Int     @default(1000)
+
+  users         UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ─── RANKING ────────────────────────────────────────────
+
+model Ranking {
+  id          String  @id @default(uuid())
+  userId      String
+  period      String  // global, weekly, monthly
+  xp          Int     @default(0)
+  position    Int?
+  week        String?
+  month       String?
+
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period])
+  @@map("rankings")
+}
+
+// ─── DESAFIO DIÁRIO ─────────────────────────────────────
+
+model DailyChallenge {
+  id          String   @id @default(uuid())
+  userId      String
+  date        String   // YYYY-MM-DD
+  completed   Boolean  @default(false)
+  score       Int      @default(0)
+  total       Int      @default(10)
+  xpEarned    Int      @default(0)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("daily_challenges")
+}
+
+// ─── FAVORITOS E ANOTAÇÕES ──────────────────────────────
+
+model Favorite {
+  id          String   @id @default(uuid())
+  userId      String
+  book        String
+  chapter     Int
+  verse       Int?
+  content     String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, book, chapter, verse])
+  @@map("favorites")
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  userId      String
+  book        String
+  chapter     Int
+  verse       Int?
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+// ─── IGREJAS ────────────────────────────────────────────
+
+model Church {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  members     ChurchMember[]
+  tournaments Tournament[]
+
+  @@map("churches")
+}
+
+model ChurchMember {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  churchId  String
+  role      String   @default("member") // member, leader, admin
+  joinedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@map("church_members")
+}
+
+// ─── CAMPEONATOS ────────────────────────────────────────
+
+model Tournament {
+  id            String   @id @default(uuid())
+  name          String
+  churchId      String?
+  startDate     DateTime
+  endDate       DateTime
+  difficulty    String   @default("medium")
+  questionCount Int      @default(10)
+  maxPlayers    Int      @default(50)
+  status        String   @default("pending") // pending, active, finished
+  createdAt     DateTime @default(now())
+
+  church        Church?  @relation(fields: [churchId], references: [id])
+  players       TournamentPlayer[]
+
+  @@map("tournaments")
+}
+
+model TournamentPlayer {
+  id            String     @id @default(uuid())
+  userId        String
+  tournamentId  String
+  score         Int        @default(0)
+  xpEarned      Int        @default(0)
+  position      Int?
+  joinedAt      DateTime   @default(now())
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tournamentId])
+  @@map("tournament_players")
+}

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#172151"/>
+      <stop offset="100%" style="stop-color:#253263"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD966"/>
+      <stop offset="100%" style="stop-color:#D4A843"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="20" fill="url(#bg)"/>
+  <!-- Livro aberto -->
+  <path d="M25 70 L50 60 L75 70 L75 35 L50 25 L25 35 Z" fill="none" stroke="url(#gold)" stroke-width="2.5" stroke-linejoin="round"/>
+  <line x1="50" y1="25" x2="50" y2="60" stroke="url(#gold)" stroke-width="2"/>
+  <!-- Páginas -->
+  <path d="M27 37 L48 28" stroke="url(#gold)" stroke-width="1" opacity="0.5"/>
+  <path d="M27 42 L48 33" stroke="url(#gold)" stroke-width="1" opacity="0.5"/>
+  <path d="M27 47 L48 38" stroke="url(#gold)" stroke-width="1" opacity="0.5"/>
+  <path d="M52 28 L73 37" stroke="url(#gold)" stroke-width="1" opacity="0.5"/>
+  <path d="M52 33 L73 42" stroke="url(#gold)" stroke-width="1" opacity="0.5"/>
+  <path d="M52 38 L73 47" stroke="url(#gold)" stroke-width="1" opacity="0.5"/>
+  <!-- Cruz no topo -->
+  <line x1="50" y1="10" x2="50" y2="22" stroke="url(#gold)" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="44" y1="15" x2="56" y2="15" stroke="url(#gold)" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Estrelas -->
+  <circle cx="20" cy="18" r="1.5" fill="#FFD966" opacity="0.7"/>
+  <circle cx="80" cy="15" r="1" fill="#FFD966" opacity="0.5"/>
+  <circle cx="15" cy="55" r="1" fill="#FFD966" opacity="0.4"/>
+  <circle cx="85" cy="60" r="1.5" fill="#FFD966" opacity="0.6"/>
+</svg>
