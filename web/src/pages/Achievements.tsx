@@ -51,7 +51,7 @@ export default function Achievements() {
         </div>
       </div>
 
-      {Object.entries(groups).map(([cat, items]) => (
+      {Object.entries(groups as Record<string, any[]>).map(([cat, items]) => (
         <div key={cat} className="mb-10">
           <h2 className="font-display font-bold text-lg text-navy-900 dark:text-white mb-4">
             {categoryLabels[cat] || cat}
