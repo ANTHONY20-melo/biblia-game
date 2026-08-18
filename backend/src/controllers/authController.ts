@@ -136,7 +136,6 @@ export async function updateProfile(req: AuthRequest, res: Response): Promise<vo
           }
         } : {})
       },
-      include: { profile: true },
       select: {
         id: true, email: true, name: true, xp: true, level: true,
         title: true, avatar: true, streak: true, coins: true, createdAt: true,

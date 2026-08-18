@@ -10,13 +10,11 @@ router.get('/:id', async (req, res: Response): Promise<void> => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
-      include: {
-        profile: true,
-        achievements: { include: { achievement: true }, orderBy: { unlockedAt: 'desc' }, take: 10 }
-      },
       select: {
         id: true, name: true, avatar: true, xp: true, level: true, title: true,
-        streak: true, createdAt: true, profile: true, achievements: true
+        streak: true, createdAt: true,
+        profile: true,
+        achievements: { select: { achievement: true }, orderBy: { unlockedAt: 'desc' }, take: 10 }
       }
     })
 
@@ -36,7 +34,7 @@ router.get('/:id', async (req, res: Response): Promise<void> => {
 router.get('/search/:name', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const users = await prisma.user.findMany({
-      where: { name: { contains: req.params.name, mode: 'insensitive' }, id: { not: req.userId! } },
+      where: { name: { contains: String(req.params.name), mode: 'insensitive' }, id: { not: req.userId! } },
       select: { id: true, name: true, avatar: true, level: true, title: true },
       take: 10
     })

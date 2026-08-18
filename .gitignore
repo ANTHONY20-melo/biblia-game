@@ -12,3 +12,5 @@ Thumbs.db
 playwright-mcp/
 .vite/
 .vercel/
+
+.vercel

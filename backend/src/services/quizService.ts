@@ -1,4 +1,5 @@
 import { prisma } from '../prisma'
+import { calculateLevel } from './xpService'
 
 interface QuizOptions {
   difficulty?: string
@@ -145,7 +146,6 @@ export async function submitQuizAnswers(
   })
 
   // Calcular novo nível
-  const { calculateLevel } = await import('../services/xpService')
   const levelInfo = calculateLevel(user.xp + totalXP)
 
   if (levelInfo.level > user.level) {
