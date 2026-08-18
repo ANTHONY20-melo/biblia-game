@@ -1,9 +1,9 @@
 {
+  "buildCommand": "cd backend && npm install && npx prisma generate && cd ../web && npm install && npm run build",
+  "outputDirectory": "web/dist",
+  "installCommand": "npm install",
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://biblia-game-api.onrender.com/api/:path*"
-    }
+    { "source": "/api/:path*", "destination": "/api" }
   ],
   "headers": [
     {

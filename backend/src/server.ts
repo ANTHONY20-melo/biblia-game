@@ -16,9 +16,9 @@ import rankingRoutes from './routes/ranking'
 import achievementRoutes from './routes/achievements'
 import bibleRoutes from './routes/bible'
 import dailyRoutes from './routes/daily'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from './prisma'
 
-export const prisma = new PrismaClient()
+export { prisma }
 
 const app = express()
 const httpServer = createServer(app)

@@ -1,5 +1,5 @@
 import { AuthRequest } from '../middlewares/auth'
-import { prisma } from '../server'
+import { prisma } from '../prisma'
 
 // ─── XP E NÍVEIS ────────────────────────────────────────
 

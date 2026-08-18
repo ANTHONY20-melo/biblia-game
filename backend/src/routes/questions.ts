@@ -1,6 +1,6 @@
 import { Router, Response } from 'express'
 import { authenticate, AuthRequest, requireAdmin } from '../middlewares/auth'
-import { prisma } from '../server'
+import { prisma } from '../prisma'
 
 const router = Router()
 

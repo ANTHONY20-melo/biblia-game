@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { authenticate, AuthRequest } from '../middlewares/auth'
 import { generateQuiz, submitQuizAnswers } from '../services/quizService'
-import { prisma } from '../server'
+import { prisma } from '../prisma'
 
 const router = Router()
 

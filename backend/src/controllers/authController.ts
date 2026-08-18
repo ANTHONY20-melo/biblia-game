@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
-import { prisma } from '../server'
+import { prisma } from '../prisma'
 import { generateTokens, AuthRequest } from '../middlewares/auth'
 
 export async function register(req: Request, res: Response): Promise<void> {

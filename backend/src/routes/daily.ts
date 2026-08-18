@@ -1,6 +1,6 @@
 import { Router, Response } from 'express'
 import { authenticate, AuthRequest } from '../middlewares/auth'
-import { prisma } from '../server'
+import { prisma } from '../prisma'
 import { awardXP, XP_REWARDS } from '../services/xpService'
 
 const router = Router()

@@ -1,4 +1,4 @@
-import { prisma } from '../server'
+import { prisma } from '../prisma'
 
 interface QuizOptions {
   difficulty?: string
