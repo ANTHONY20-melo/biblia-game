@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd backend && npm install && npx prisma generate && npx prisma db push && npm --prefix web install && cd web && npm run build",
+  "buildCommand": "cd backend && npm install && npx prisma generate && npx prisma db push && cd .. && npm --prefix web install && cd web && npm run build",
   "outputDirectory": "web/dist",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" }
