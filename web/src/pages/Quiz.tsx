@@ -6,8 +6,9 @@ import { Clock, CheckCircle, XCircle, ArrowRight, RotateCcw, Trophy, Star, Zap, 
 
 type Question = {
   id: string; text: string; type: string; options?: string[];
+  optionA?: string; optionB?: string; optionC?: string; optionD?: string;
   answer: string; explanation: string; book: string; chapter?: number; verse?: number;
-  difficulty: string; category: string;
+  difficulty: string; category: string; xp?: number;
 }
 
 export default function Quiz() {
@@ -319,53 +320,111 @@ export default function Quiz() {
 
         {/* Options */}
         <div className="space-y-3">
-          {(currentQ.options || [currentQ.type === 'true_false' ? 'True' : null, currentQ.type === 'true_false' ? 'False' : null].filter(Boolean) as string[]).map((opt, i) => {
-            const letter = String.fromCharCode(65 + i)
-            const isSelected = selectedAnswer === opt
-            const isCorrect = opt === currentQ.answer
-            const showResult = isAnswered
+          {(() => {
+            let options: string[] = []
+            if (currentQ.options && currentQ.options.length > 0) {
+              options = currentQ.options
+            } else if (currentQ.type === 'true_false') {
+              options = ['Verdadeiro', 'Falso']
+            } else if (currentQ.type === 'who_said' || currentQ.type === 'character') {
+              options = [currentQ.optionA, currentQ.optionB, currentQ.optionC, currentQ.optionD].filter(Boolean) as string[]
+            }
+            return options.map((opt, i) => {
+              const letter = String.fromCharCode(65 + i)
+              const isSelected = selectedAnswer === opt
+              const isCorrect = opt === currentQ.answer
+              const showResult = isAnswered
 
-            let optClass = 'border-navy-200 dark:border-navy-700 hover:border-gold-500/50 hover:bg-gold-500/5'
-            if (showResult && isCorrect) optClass = 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
-            if (showResult && isSelected && !isCorrect) optClass = 'border-red-400 bg-red-50 dark:bg-red-900/20'
-            if (showResult && !isCorrect && !isSelected) optClass = 'border-navy-200 dark:border-navy-700 opacity-50'
+              let optClass = 'border-navy-200 dark:border-navy-700 hover:border-gold-500/50 hover:bg-gold-500/5'
+              if (showResult && isCorrect) optClass = 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+              if (showResult && isSelected && !isCorrect) optClass = 'border-red-400 bg-red-50 dark:bg-red-900/20'
+              if (showResult && !isCorrect && !isSelected) optClass = 'border-navy-200 dark:border-navy-700 opacity-50'
 
-            return (
-              <button
-                key={i}
-                onClick={() => selectAnswer(opt)}
-                disabled={isAnswered}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 text-left ${optClass}`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                  showResult && isCorrect ? 'bg-emerald-500 text-white' :
-                  showResult && isSelected ? 'bg-red-500 text-white' :
-                  'bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-gray-300'
-                }`}>
-                  {showResult && isCorrect ? <CheckCircle size={18} /> :
-                   showResult && isSelected ? <XCircle size={18} /> :
-                   letter}
-                </div>
-                <span className="font-medium text-navy-800 dark:text-gray-200">{opt}</span>
-              </button>
-            )
-          })}
+              return (
+                <button
+                  key={i}
+                  onClick={() => selectAnswer(opt)}
+                  disabled={isAnswered}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 text-left ${optClass}`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${
+                    showResult && isCorrect ? 'bg-emerald-500 text-white' :
+                    showResult && isSelected ? 'bg-red-500 text-white' :
+                    'bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-gray-300'
+                  }`}>
+                    {showResult && isCorrect ? <CheckCircle size={18} /> :
+                     showResult && isSelected ? <XCircle size={18} /> :
+                     letter}
+                  </div>
+                  <span className="font-medium text-navy-800 dark:text-gray-200">{opt}</span>
+                </button>
+              )
+            })
+          })()}
         </div>
 
         {/* Feedback after answer */}
         {isAnswered && (
           <div className="mt-6 animate-slide-up">
-            <div className={`p-4 rounded-xl ${
-              selectedAnswer === currentQ.answer
-                ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
-                : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-            }`}>
-              <p className={`font-bold mb-1 ${selectedAnswer === currentQ.answer ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-                {selectedAnswer === currentQ.answer ? '✅ Correto!' : '❌ Incorreto!'}
-              </p>
-              <p className="text-sm text-navy-600 dark:text-gray-300">{currentQ.explanation}</p>
-              <p className="text-xs text-gold-500 mt-2">📖 {currentQ.book}{currentQ.chapter ? ` ${currentQ.chapter}` : ''}{currentQ.verse ? `:${currentQ.verse}` : ''}</p>
-            </div>
+            {/* Character Reveal Card - Special for character type questions */}
+            {currentQ.type === 'character' && (
+              <div className={`relative overflow-hidden rounded-2xl p-6 mb-4 ${
+                selectedAnswer === currentQ.answer
+                  ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 border-2 border-emerald-400'
+                  : 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-2 border-red-400'
+              } animate-slide-up`}>
+                <div className="absolute top-4 right-4 text-6xl opacity-20">
+                  {selectedAnswer === currentQ.answer ? '👑' : '👤'}
+                </div>
+                <div className="relative flex items-center gap-4">
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0 ${
+                    selectedAnswer === currentQ.answer
+                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                      : 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                  }`}>
+                    {selectedAnswer === currentQ.answer ? '✨' : '🔍'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`font-display font-bold text-xl ${
+                        selectedAnswer === currentQ.answer ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'
+                      }`}>
+                        {selectedAnswer === currentQ.answer ? '🎉 Personagem Revelado!' : '👤 Personagem:'}
+                      </span>
+                      <span className="badge-gold text-xs">{currentQ.difficulty}</span>
+                    </div>
+                    <p className="text-lg font-bold text-navy-900 dark:text-white">{currentQ.answer}</p>
+                    <p className="text-sm text-navy-600 dark:text-gray-300 mt-1">{currentQ.explanation}</p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-emerald-200 dark:border-emerald-800 flex flex-wrap items-center gap-4">
+                  <p className="text-xs text-gold-600 dark:text-gold-400 flex items-center gap-1">
+                    <BookOpen size={12} /> {currentQ.book}{currentQ.chapter ? ` ${currentQ.chapter}` : ''}{currentQ.verse ? `:${currentQ.verse}` : ''}
+                  </p>
+                  <span className="text-xs text-navy-500 dark:text-gray-400">Categoria: {currentQ.category}</span>
+                  {selectedAnswer === currentQ.answer && (
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                      <Star size={12} /> +{currentQ.xp} XP
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Standard Feedback for other types */}
+            {currentQ.type !== 'character' && (
+              <div className={`p-4 rounded-xl ${
+                selectedAnswer === currentQ.answer
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+              }`}>
+                <p className={`font-bold mb-1 ${selectedAnswer === currentQ.answer ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                  {selectedAnswer === currentQ.answer ? '✅ Correto!' : '❌ Incorreto!'}
+                </p>
+                <p className="text-sm text-navy-600 dark:text-gray-300">{currentQ.explanation}</p>
+                <p className="text-xs text-gold-500 mt-2">📖 {currentQ.book}{currentQ.chapter ? ` ${currentQ.chapter}` : ''}{currentQ.verse ? `:${currentQ.verse}` : ''}</p>
+              </div>
+            )}
 
             <button onClick={nextQuestion} className="btn-primary w-full mt-4 flex items-center justify-center gap-2">
               {currentIndex + 1 >= questions.length ? (

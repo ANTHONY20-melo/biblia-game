@@ -44,9 +44,9 @@ export async function generateQuiz(userId: string, options: QuizOptions) {
 
   const questions = await prisma.$queryRawUnsafe<unknown[]>(query, ...params)
 
-  // Embaralhar alternativas para múltipla escolha
+  // Embaralhar alternativas para múltipla escolha, who_said e character
   const prepared = (questions as Record<string, unknown>[]).map(q => {
-    if (q.type === 'multiple_choice' || q.type === 'who_said') {
+    if (q.type === 'multiple_choice' || q.type === 'who_said' || q.type === 'character') {
       const opts = [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean) as string[]
       // Embaralhar
       for (let i = opts.length - 1; i > 0; i--) {

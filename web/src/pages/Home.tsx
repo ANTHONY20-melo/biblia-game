@@ -10,7 +10,7 @@ const GAMES = [
   { id: 'ranking', title: 'Ranking', desc: 'Veja sua posição entre os melhores jogadores', icon: '🏆', color: 'from-yellow-500 to-amber-600', link: '/ranking' },
   { id: 'bible', title: 'Bíblia Interativa', desc: 'Navegue pelos livros e capítulos da Bíblia', icon: '📖', color: 'from-emerald-500 to-teal-600', link: '/bible' },
   { id: 'achievements', title: 'Conquistas', desc: 'Desbloqueie badges e ganhe XP extra', icon: '🏆', color: 'from-purple-500 to-violet-600', link: '/achievements' },
-  { id: 'characters', title: 'Quem é o Personagem?', desc: 'Identifique personagens bíblicos pelas pistas', icon: '👤', color: 'from-pink-500 to-rose-500', link: '/games/quiz?category=Personagens' },
+  { id: 'characters', title: 'Quem é o Personagem?', desc: 'Identifique personagens bíblicos pelas pistas', icon: '👤', color: 'from-pink-500 to-rose-500', link: '/games/quiz?type=character' },
 ]
 
 export default function Home() {

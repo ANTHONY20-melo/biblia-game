@@ -45,10 +45,10 @@ const ALL_GAMES = [
   {
     id: 'character',
     title: 'Quem é o Personagem?',
-    desc: 'Identifique personagens bíblicos a partir de pistas.',
+    desc: 'Identifique personagens bíblicos a partir de pistas e descrições.',
     icon: '👤',
     color: 'from-pink-500 to-rose-500',
-    link: '/games/quiz?category=Personagens',
+    link: '/games/quiz?type=character',
     difficulty: 'Todos os níveis',
     xp: '+100 XP por acerto',
   },
