@@ -3,6 +3,20 @@ import { api } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 import { Calendar, CheckCircle, XCircle, Clock, ArrowRight, Flame, Trophy, Star } from 'lucide-react'
 
+// Normaliza respostas de true_false: UI mostra "Verdadeiro"/"Falso", banco guarda "True"/"False"
+function normalizeAnswer(type: string | undefined, answer: string): string {
+  const t = (answer || '').trim().toLowerCase()
+  if (type === 'true_false') {
+    if (t === 'verdadeiro' || t === 'true' || t === 'v') return 'true'
+    if (t === 'falso' || t === 'false' || t === 'f') return 'false'
+  }
+  return t
+}
+
+function isAnswerCorrect(type: string | undefined, selected: string, correct: string): boolean {
+  return normalizeAnswer(type, selected) === normalizeAnswer(type, correct)
+}
+
 type Question = {
   id: string; text: string; type: string; options?: string[];
   answer: string; explanation: string; book: string; chapter?: number; verse?: number;
@@ -51,7 +65,7 @@ export default function DailyChallenge() {
     try {
       const result = await api.dailyAnswer({
         questionId: questions[currentIndex].id,
-        answer,
+        answer: normalizeAnswer(questions[currentIndex].type, answer),
         timeSpent: timer
       })
       setFeedback({ correct: result.correct, correctAnswer: result.correctAnswer, explanation: result.explanation })
@@ -125,7 +139,7 @@ export default function DailyChallenge() {
       return currentQ.options
     }
     if (currentQ.type === 'true_false') {
-      return ['True', 'False']
+      return ['Verdadeiro', 'Falso']
     }
     return []
   }
@@ -195,7 +209,7 @@ export default function DailyChallenge() {
             displayOptions.map((opt, i) => {
               const letter = String.fromCharCode(65 + i)
               const isSelected = selectedAnswer === opt
-              const isCorrect = opt.toLowerCase().trim() === currentQ.answer.toLowerCase().trim()
+              const isCorrect = isAnswerCorrect(currentQ.type, opt, currentQ.answer)
 
               let cls = 'border-navy-200 dark:border-navy-700 hover:border-gold-500/50 hover:bg-gold-500/5'
               if (isAnswered && isCorrect) cls = 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'

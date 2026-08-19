@@ -5,6 +5,16 @@ import { awardXP, XP_REWARDS } from '../services/xpService'
 
 const router = Router()
 
+// Normaliza respostas de true_false: UI mostra "Verdadeiro"/"Falso", banco guarda "True"/"False"
+function normalizeAnswer(type: string | undefined, answer: string): string {
+  const t = (answer || '').trim().toLowerCase()
+  if (type === 'true_false') {
+    if (t === 'verdadeiro' || t === 'true' || t === 'v') return 'true'
+    if (t === 'falso' || t === 'false' || t === 'f') return 'false'
+  }
+  return t
+}
+
 // Obter desafio diário
 router.get('/today', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -18,7 +28,7 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response): Prom
       // CRIT-01: NÃO enviar campo 'answer' ao client (anti-cheating)
       // CRIT-02: Usar parâmetros prepared (neste caso sem parâmetros, mas seguro)
       const questions = await prisma.$queryRawUnsafe<unknown[]>(
-        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
+        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", answer, explanation,
                 book, chapter, verse, difficulty, category, xp
          FROM questions WHERE active = true ORDER BY RANDOM() LIMIT 10`
       )
@@ -77,7 +87,7 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response): Prom
       const params: unknown[] = [...ids, remaining]
       const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
       questions = await prisma.$queryRawUnsafe<unknown[]>(
-        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
+        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", answer, explanation,
                 book, chapter, verse, difficulty, category, xp
          FROM questions WHERE active = true AND id NOT IN (${placeholders})
          ORDER BY RANDOM() LIMIT $${ids.length + 1}`,
@@ -85,7 +95,7 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response): Prom
       )
     } else {
       questions = await prisma.$queryRawUnsafe<unknown[]>(
-        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
+        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", answer, explanation,
                 book, chapter, verse, difficulty, category, xp
          FROM questions WHERE active = true
          ORDER BY RANDOM() LIMIT $1`,
@@ -128,7 +138,7 @@ router.post('/answer', authenticate, async (req: AuthRequest, res: Response): Pr
       return
     }
 
-    const correct = question.answer.toLowerCase().trim() === answer.toLowerCase().trim()
+    const correct = normalizeAnswer(question.type, question.answer) === normalizeAnswer(question.type, answer)
 
     // API-03: Usar início do dia UTC corretamente
     const startOfDay = new Date(today + 'T00:00:00.000Z')

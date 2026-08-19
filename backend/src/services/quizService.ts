@@ -8,6 +8,16 @@ interface QuizOptions {
   count?: number
 }
 
+// Normaliza respostas de true_false: UI mostra "Verdadeiro"/"Falso", banco guarda "True"/"False"
+function normalizeAnswer(type: string | undefined, answer: string): string {
+  const t = (answer || '').trim().toLowerCase()
+  if (type === 'true_false') {
+    if (t === 'verdadeiro' || t === 'true' || t === 'v') return 'true'
+    if (t === 'falso' || t === 'false' || t === 'f') return 'false'
+  }
+  return t
+}
+
 export async function generateQuiz(userId: string, options: QuizOptions) {
   const count = Math.min(options.count || 10, 50)
 
@@ -32,8 +42,11 @@ export async function generateQuiz(userId: string, options: QuizOptions) {
     params.push(options.type)
   }
 
+  // O campo 'answer' é enviado ao client porque a UI precisa validar a resposta
+  // em tempo real (feedback imediato). A correção oficial de XP/sessão é feita
+  // no servidor via submitQuizAnswers (não confia no client para pontuar).
   const query = `
-    SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
+    SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", answer, explanation,
            book, chapter, verse, difficulty, category, xp
     FROM questions
     WHERE ${conditions.join(' AND ')}
@@ -89,7 +102,7 @@ export async function submitQuizAnswers(
     const question = questionMap.get(a.questionId)
     if (!question) return { questionId: a.questionId, userAnswer: a.answer, correct: false, timeSpent: a.timeSpent }
 
-    const correct = question.answer.toLowerCase().trim() === a.answer.toLowerCase().trim()
+    const correct = normalizeAnswer(question.type, question.answer) === normalizeAnswer(question.type, a.answer)
     return {
       questionId: a.questionId,
       userAnswer: a.answer,
