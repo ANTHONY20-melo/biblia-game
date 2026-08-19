@@ -92,7 +92,7 @@ httpServer.listen(PORT, () => {
   ║  "Conheça a Palavra. Desafie seus       ║
   ║   conhecimentos. Viva a Bíblia."        ║
   ╠══════════════════════════════════════════╣
-  ║  🌐 Server: http://localhost:${PORT}       ║
+  ║  🌐 Server: http://localhost:${String(PORT).padEnd(5)} ║
   ║  📡 WebSocket: habilitado               ║
   ║  🔐 Auth: JWT + Rate Limiting           ║
   ╚══════════════════════════════════════════╝

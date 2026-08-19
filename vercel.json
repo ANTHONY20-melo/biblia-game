@@ -1,12 +1,18 @@
 {
   "buildCommand": "cd backend && npm install --include=dev && npx prisma generate && npx prisma db push && cd .. && npm --prefix web install --include=dev && cd web && npm run build",
   "outputDirectory": "web/dist",
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30,
+      "includeFiles": "backend/**"
+    }
+  },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api" }
+    { "source": "/api/(.*)", "destination": "/api" }
   ],
   "headers": [
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,OPTIONS" },

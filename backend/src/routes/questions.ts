@@ -83,8 +83,8 @@ router.post('/bulk', authenticate, requireAdmin, async (req: AuthRequest, res: R
   }
 })
 
-// Estatísticas gerais de perguntas
-router.get('/stats', async (_req, res: Response): Promise<void> => {
+// Estatísticas gerais de perguntas (requer autenticação)
+router.get('/stats', authenticate, async (_req, res: Response): Promise<void> => {
   try {
     const [total, byDifficulty, byBook, byType] = await Promise.all([
       prisma.question.count({ where: { active: true } }),

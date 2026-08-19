@@ -11,44 +11,49 @@ interface QuizOptions {
 export async function generateQuiz(userId: string, options: QuizOptions) {
   const count = Math.min(options.count || 10, 50)
 
-  // Construir filtro
-  const where: any = { active: true }
+  // CRIT-01: NÃO enviar campo 'answer' ao client (anti-cheating)
+  // CRIT-02: Usar parâmetros prepared para prevenir SQL injection
+  const params: unknown[] = []
+  const conditions: string[] = ['active = true']
+  let paramIndex = 1
 
   if (options.difficulty && options.difficulty !== 'all') {
-    where.difficulty = options.difficulty
+    conditions.push(`difficulty = $${paramIndex++}`)
+    params.push(options.difficulty)
   }
 
   if (options.book) {
-    where.book = options.book
+    conditions.push(`book = $${paramIndex++}`)
+    params.push(options.book)
   }
 
   if (options.type) {
-    where.type = options.type
+    conditions.push(`type = $${paramIndex++}`)
+    params.push(options.type)
   }
 
-  // Buscar perguntas aleatórias
-  const questions = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", answer, explanation,
-            book, chapter, verse, difficulty, category, xp
-     FROM questions
-     WHERE active = true
-       ${options.difficulty && options.difficulty !== 'all' ? `AND difficulty = '${options.difficulty}'` : ''}
-       ${options.book ? `AND book = '${options.book}'` : ''}
-       ${options.type ? `AND type = '${options.type}'` : ''}
-     ORDER BY RANDOM()
-     LIMIT ${count}`
-  )
+  const query = `
+    SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
+           book, chapter, verse, difficulty, category, xp
+    FROM questions
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY RANDOM()
+    LIMIT $${paramIndex}
+  `
+  params.push(count)
+
+  const questions = await prisma.$queryRawUnsafe<unknown[]>(query, ...params)
 
   // Embaralhar alternativas para múltipla escolha
-  const prepared = questions.map(q => {
+  const prepared = (questions as Record<string, unknown>[]).map(q => {
     if (q.type === 'multiple_choice' || q.type === 'who_said') {
-      const options = [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean)
+      const opts = [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean) as string[]
       // Embaralhar
-      for (let i = options.length - 1; i > 0; i--) {
+      for (let i = opts.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [options[i], options[j]] = [options[j], options[i]]
+        [opts[i], opts[j]] = [opts[j], opts[i]]
       }
-      return { ...q, options, optionA: undefined, optionB: undefined, optionC: undefined, optionD: undefined }
+      return { ...q, options: opts, optionA: undefined, optionB: undefined, optionC: undefined, optionD: undefined }
     }
     return q
   })
@@ -76,6 +81,10 @@ export async function submitQuizAnswers(
 
   const questionMap = new Map(questions.map(q => [q.id, q]))
 
+  // Multiplicador de dificuldade (precisa estar antes do cálculo individual)
+  const multipliers: Record<string, number> = { easy: 1, medium: 1.5, hard: 2, expert: 3, master: 5 }
+  const multiplier = multipliers[difficulty || 'easy'] || 1
+
   const evaluatedAnswers = answers.map(a => {
     const question = questionMap.get(a.questionId)
     if (!question) return { questionId: a.questionId, userAnswer: a.answer, correct: false, timeSpent: a.timeSpent }
@@ -102,11 +111,10 @@ export async function submitQuizAnswers(
   // Bônus de perfeição
   const perfectBonus = (correctCount === total && total > 0) ? 250 : 0
 
-  // Multiplicador de dificuldade
-  const multipliers: Record<string, number> = { easy: 1, medium: 1.5, hard: 2, expert: 3, master: 5 }
-  const multiplier = multipliers[difficulty || 'easy'] || 1
-
   const totalXP = Math.round((baseXP + speedBonus + perfectBonus) * multiplier)
+
+  // LOG-12: xpEarned individual reflete o multiplicador corretamente
+  const perAnswerXP = Math.round(100 * multiplier)
 
   // Salvar sessão
   const session = await prisma.gameSession.create({
@@ -125,7 +133,7 @@ export async function submitQuizAnswers(
           questionId: a.questionId,
           userAnswer: a.userAnswer,
           correct: a.correct,
-          xpEarned: a.correct ? 100 : 0,
+          xpEarned: a.correct ? perAnswerXP : 0,
           timeSpent: a.timeSpent
         }))
       }
@@ -145,8 +153,8 @@ export async function submitQuizAnswers(
     update: { xp: { increment: totalXP } }
   })
 
-  // Calcular novo nível
-  const levelInfo = calculateLevel(user.xp + totalXP)
+  // LOG-01: Corrigido — user.xp JÁ inclui totalXP (increment acima), não somar novamente
+  const levelInfo = calculateLevel(user.xp)
 
   if (levelInfo.level > user.level) {
     await prisma.user.update({
@@ -177,7 +185,7 @@ export async function submitQuizAnswers(
     multiplier,
     level: levelInfo.level,
     title: levelInfo.title,
-    totalXP: user.xp + totalXP,
+    totalXP: user.xp,
     answers: evaluatedAnswers.map((a, i) => {
       const q = questionMap.get(a.questionId)
       return {

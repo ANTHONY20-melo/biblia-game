@@ -65,7 +65,7 @@ export async function checkAndAwardAchievements(userId: string) {
 
   const unlockedIds = new Set(user.achievements.map(ua => ua.achievementId))
   const allAchievements = await prisma.achievement.findMany()
-  const newAchievements: any[] = []
+  const newAchievements: { name: string; description: string; icon: string; xpReward: number }[] = []
 
   // Estatísticas do usuário
   const totalGames = user.profile?.totalGames || 0
@@ -75,6 +75,13 @@ export async function checkAndAwardAchievements(userId: string) {
   })
   const totalWins = user.profile?.wins || 0
 
+  // LOG-02: Contar quizzes com 100% de acerto
+  const perfectQuizSessions = await prisma.gameSession.findMany({
+    where: { userId, completed: true },
+    select: { correct: true, total: true }
+  })
+  const perfectQuizzes = perfectQuizSessions.filter(s => s.correct === s.total && s.total > 0).length
+
   for (const ach of allAchievements) {
     if (unlockedIds.has(ach.id)) continue
 
@@ -83,11 +90,18 @@ export async function checkAndAwardAchievements(userId: string) {
     switch (ach.category) {
       case 'inicio':
         if (ach.name.includes('Primeiro Passo') && totalGames >= 1) unlocked = true
+        // LOG-02: Adicionada verificação para "Primeira Vitória"
+        if (ach.name.includes('Primeira Vitória') && perfectQuizzes >= ach.requirement) unlocked = true
         if (ach.name.includes('Estudante') && totalGames >= ach.requirement) unlocked = true
         if (ach.name.includes('Aluno') && totalGames >= ach.requirement) unlocked = true
         break
       case 'acertos':
-        if (totalCorrect._count >= ach.requirement) unlocked = true
+        // LOG-04: Perfeccionista agora verifica quizzes com 100% (não total de acertos)
+        if (ach.name.includes('Perfeccionista')) {
+          if (perfectQuizzes >= ach.requirement) unlocked = true
+        } else {
+          if (totalCorrect._count >= ach.requirement) unlocked = true
+        }
         break
       case 'streak':
         if (user.streak >= ach.requirement) unlocked = true
@@ -96,7 +110,9 @@ export async function checkAndAwardAchievements(userId: string) {
         if (totalWins >= ach.requirement) unlocked = true
         break
       case 'conhecimento':
-        if (ach.name.includes('Nível') && user.level >= ach.requirement) unlocked = true
+        // LOG-03: Corrigido — verificar pelos nomes reais das conquistas
+        if (ach.name.includes('Mestre da Bíblia') && user.level >= ach.requirement) unlocked = true
+        if (ach.name.includes('Sábio dos Sábios') && user.level >= ach.requirement) unlocked = true
         break
       case 'diario':
         const dailyCount = await prisma.dailyChallenge.count({

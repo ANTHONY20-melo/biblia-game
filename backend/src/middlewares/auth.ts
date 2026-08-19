@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { Request, Response, NextFunction } from 'express'
+import { prisma } from '../prisma'
 
 export interface AuthRequest extends Request {
   userId?: string
@@ -26,11 +27,24 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
   }
 }
 
-export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction): void {
-  if (req.userRole !== 'admin' && req.userRole !== 'super_admin') {
+export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  // CFG-03: Buscar role atualizada do banco em vez de confiar no JWT stale
+  if (!req.userId) {
+    res.status(401).json({ error: 'Autenticação necessária.' })
+    return
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { role: true }
+  })
+
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
     res.status(403).json({ error: 'Acesso restrito a administradores.' })
     return
   }
+
+  req.userRole = user.role
   next()
 }
 

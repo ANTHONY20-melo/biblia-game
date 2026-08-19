@@ -15,18 +15,21 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response): Prom
     })
 
     if (!progress) {
-      // Buscar 10 perguntas aleatórias para o desafio
-      const questions = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", answer, explanation,
+      // CRIT-01: NÃO enviar campo 'answer' ao client (anti-cheating)
+      // CRIT-02: Usar parâmetros prepared (neste caso sem parâmetros, mas seguro)
+      const questions = await prisma.$queryRawUnsafe<unknown[]>(
+        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
                 book, chapter, verse, difficulty, category, xp
          FROM questions WHERE active = true ORDER BY RANDOM() LIMIT 10`
       )
+
+      const typedQuestions = questions as Record<string, unknown>[]
 
       progress = await prisma.dailyChallenge.create({
         data: {
           userId: req.userId!,
           date: today,
-          total: questions.length,
+          total: typedQuestions.length,
         }
       })
 
@@ -34,13 +37,15 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response): Prom
         date: today,
         completed: false,
         score: 0,
-        total: questions.length,
+        total: typedQuestions.length,
         xpEarned: 0,
-        questions: questions.map(q => ({
+        questions: typedQuestions.map(q => ({
           ...q,
           options: q.type === 'multiple_choice' || q.type === 'who_said'
             ? [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean)
-            : undefined
+            : q.type === 'true_false'
+              ? ['True', 'False']
+              : undefined
         }))
       })
       return
@@ -64,12 +69,31 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response): Prom
     })
     const ids = answeredIds.map(a => a.questionId)
 
-    const questions = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", answer, explanation,
-              book, chapter, verse, difficulty, category, xp
-       FROM questions WHERE active = true ${ids.length > 0 ? `AND id NOT IN (${ids.map(id => `'${id}'`).join(',')})` : ''}
-       ORDER BY RANDOM() LIMIT ${10 - progress.score}`
-    )
+    // CRIT-02: Usar parâmetros prepared para IDs (prevenir SQL injection)
+    const remaining = 10 - progress.score
+    let questions: unknown[]
+
+    if (ids.length > 0) {
+      const params: unknown[] = [...ids, remaining]
+      const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
+      questions = await prisma.$queryRawUnsafe<unknown[]>(
+        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
+                book, chapter, verse, difficulty, category, xp
+         FROM questions WHERE active = true AND id NOT IN (${placeholders})
+         ORDER BY RANDOM() LIMIT $${ids.length + 1}`,
+        ...params
+      )
+    } else {
+      questions = await prisma.$queryRawUnsafe<unknown[]>(
+        `SELECT id, text, type, "optionA", "optionB", "optionC", "optionD", explanation,
+                book, chapter, verse, difficulty, category, xp
+         FROM questions WHERE active = true
+         ORDER BY RANDOM() LIMIT $1`,
+        remaining
+      )
+    }
+
+    const typedQuestions = questions as Record<string, unknown>[]
 
     res.json({
       date: today,
@@ -77,11 +101,13 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response): Prom
       score: progress.score,
       total: progress.total,
       xpEarned: progress.xpEarned,
-      questions: questions.map(q => ({
+      questions: typedQuestions.map(q => ({
         ...q,
         options: q.type === 'multiple_choice' || q.type === 'who_said'
           ? [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean)
-          : undefined
+          : q.type === 'true_false'
+            ? ['True', 'False']
+            : undefined
       }))
     })
   } catch (error) {
@@ -104,9 +130,12 @@ router.post('/answer', authenticate, async (req: AuthRequest, res: Response): Pr
 
     const correct = question.answer.toLowerCase().trim() === answer.toLowerCase().trim()
 
+    // API-03: Usar início do dia UTC corretamente
+    const startOfDay = new Date(today + 'T00:00:00.000Z')
+
     // Criar sessão de jogo para a resposta
     const session = await prisma.gameSession.findFirst({
-      where: { userId: req.userId!, gameType: 'daily', createdAt: { gte: new Date(today) } }
+      where: { userId: req.userId!, gameType: 'daily', createdAt: { gte: startOfDay } }
     })
 
     let sessionId: string

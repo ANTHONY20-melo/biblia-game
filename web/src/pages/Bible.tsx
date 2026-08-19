@@ -1,9 +1,71 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { api } from '../lib/api'
 import { BookOpen, Search, ChevronRight, ChevronDown } from 'lucide-react'
 
+// TYPE-03: BookList movido para fora do componente pai para evitar recriação a cada render
+type BookItem = { id: string; name: string; chapters: number; order: number; testament: string }
+
+type BookListProps = {
+  title: string
+  items: BookItem[]
+  icon: string
+  search: string
+  expanded: string | null
+  onToggle: (name: string) => void
+}
+
+function BookList({ title, items, icon, search, expanded, onToggle }: BookListProps) {
+  const filtered = useMemo(() =>
+    search ? items.filter(b => b.name.toLowerCase().includes(search.toLowerCase())) : items
+  , [items, search])
+
+  return (
+    <div className="mb-8">
+      <h2 className="font-display font-bold text-lg text-navy-900 dark:text-white mb-4 flex items-center gap-2">
+        {icon} {title}
+      </h2>
+      <div className="space-y-2">
+        {filtered.map(book => (
+          <div key={book.id} className="card !p-4 group hover:border-gold-500/30 cursor-pointer"
+            onClick={() => onToggle(book.name)}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 font-bold text-xs">
+                  {book.order}
+                </div>
+                <div>
+                  <p className="font-medium text-navy-900 dark:text-white text-sm">{book.name}</p>
+                  <p className="text-xs text-navy-400">{book.chapters} capítulos</p>
+                </div>
+              </div>
+              {expanded === book.name ? <ChevronDown size={16} className="text-navy-400" /> : <ChevronRight size={16} className="text-navy-400" />}
+            </div>
+            {expanded === book.name && (
+              <div className="mt-4 pt-4 border-t border-navy-100 dark:border-navy-800 animate-slide-up">
+                <p className="text-xs text-navy-500 dark:text-gray-400 mb-3">
+                  Escolha um nível de dificuldade para jogar com perguntas deste livro:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(['easy', 'medium', 'hard', 'expert', 'master'] as const).map(d => (
+                    <a key={d}
+                      href={`/games/quiz?book=${encodeURIComponent(book.name)}&difficulty=${d}`}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-gray-300 hover:bg-gold-500 hover:text-navy-950 transition-colors"
+                    >
+                      {d === 'easy' ? 'Fácil' : d === 'medium' ? 'Médio' : d === 'hard' ? 'Difícil' : d === 'expert' ? 'Especialista' : 'Mestre'}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Bible() {
-  const [books, setBooks] = useState<any[]>([])
+  const [books, setBooks] = useState<BookItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -12,58 +74,8 @@ export default function Bible() {
     api.bibleBooks().then(b => { setBooks(b); setLoading(false) }).catch(() => setLoading(false))
   }, [])
 
-  const oldTestament = books.filter(b => b.testament === 'old')
-  const newTestament = books.filter(b => b.testament === 'new')
-
-  const filterBooks = (list: any[]) =>
-    search ? list.filter(b => b.name.toLowerCase().includes(search.toLowerCase())) : list
-
-  const BookList = ({ title, items, icon }: { title: string; items: any[]; icon: string }) => {
-    const filtered = filterBooks(items)
-    return (
-      <div className="mb-8">
-        <h2 className="font-display font-bold text-lg text-navy-900 dark:text-white mb-4 flex items-center gap-2">
-          {icon} {title}
-        </h2>
-        <div className="space-y-2">
-          {filtered.map(book => (
-            <div key={book.id} className="card !p-4 group hover:border-gold-500/30 cursor-pointer"
-              onClick={() => setExpanded(expanded === book.name ? null : book.name)}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 font-bold text-xs">
-                    {book.order}
-                  </div>
-                  <div>
-                    <p className="font-medium text-navy-900 dark:text-white text-sm">{book.name}</p>
-                    <p className="text-xs text-navy-400">{book.chapters} capítulos</p>
-                  </div>
-                </div>
-                {expanded === book.name ? <ChevronDown size={16} className="text-navy-400" /> : <ChevronRight size={16} className="text-navy-400" />}
-              </div>
-              {expanded === book.name && (
-                <div className="mt-4 pt-4 border-t border-navy-100 dark:border-navy-800 animate-slide-up">
-                  <p className="text-xs text-navy-500 dark:text-gray-400 mb-3">
-                    Escolha um nível de dificuldade para jogar com perguntas deste livro:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {['easy', 'medium', 'hard', 'expert', 'master'].map(d => (
-                      <a key={d}
-                        href={`/games/quiz?book=${encodeURIComponent(book.name)}&difficulty=${d}`}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-gray-300 hover:bg-gold-500 hover:text-navy-950 transition-colors"
-                      >
-                        {d === 'easy' ? 'Fácil' : d === 'medium' ? 'Médio' : d === 'hard' ? 'Difícil' : d === 'expert' ? 'Especialista' : 'Mestre'}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
+  const oldTestament = useMemo(() => books.filter(b => b.testament === 'old'), [books])
+  const newTestament = useMemo(() => books.filter(b => b.testament === 'new'), [books])
 
   if (loading) return (
     <div className="page-container max-w-4xl mx-auto">
@@ -96,8 +108,8 @@ export default function Bible() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <BookList title="Antigo Testamento" items={oldTestament} icon="📜" />
-        <BookList title="Novo Testamento" items={newTestament} icon="✝️" />
+        <BookList title="Antigo Testamento" items={oldTestament} icon="📜" search={search} expanded={expanded} onToggle={name => setExpanded(expanded === name ? null : name)} />
+        <BookList title="Novo Testamento" items={newTestament} icon="✝️" search={search} expanded={expanded} onToggle={name => setExpanded(expanded === name ? null : name)} />
       </div>
     </div>
   )

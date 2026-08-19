@@ -13,7 +13,7 @@ router.get('/generate', authenticate, async (req: AuthRequest, res: Response): P
       difficulty: difficulty as string,
       book: book as string,
       type: type as string,
-      count: count ? parseInt(count as string) : 10
+      count: count ? (parseInt(count as string) || 10) : 10
     })
     res.json(quiz)
   } catch (error) {

@@ -22,6 +22,8 @@ export default function DailyChallenge() {
   const [streak, setStreak] = useState(0)
   const [timer, setTimer] = useState(0)
   const [feedback, setFeedback] = useState<{ correct: boolean; correctAnswer: string; explanation: string } | null>(null)
+  // LOG-07: Input para fill_blank
+  const [fillBlankInput, setFillBlankInput] = useState('')
 
   useEffect(() => {
     api.dailyChallenge().then(data => {
@@ -68,6 +70,7 @@ export default function DailyChallenge() {
       setIsAnswered(false)
       setFeedback(null)
       setTimer(0)
+      setFillBlankInput('')
     }
   }
 
@@ -101,12 +104,13 @@ export default function DailyChallenge() {
                 </div>
                 <div className="p-4 bg-navy-50 dark:bg-navy-800 rounded-xl">
                   <div className="text-2xl font-bold text-orange-500">🔥</div>
-                  <div className="text-xs text-navy-500">Voltando amanhã!</div>
+                  <div className="text-xs text-navy-500">Volte amanhã!</div>
                 </div>
               </div>
             </>
           ) : (
-            <p className="text-navy-500 dark:text-gray-400">Voltante amanhã para um novo desafio!</p>
+            // LOG-08: Corrigido "Voltante" → "Volte"
+            <p className="text-navy-500 dark:text-gray-400">Volte amanhã para um novo desafio!</p>
           )}
         </div>
       </div>
@@ -114,6 +118,20 @@ export default function DailyChallenge() {
   }
 
   const currentQ = questions[currentIndex]
+
+  // LOG-07: Gerar opções para true_false e fill_blank
+  const getDisplayOptions = (): string[] => {
+    if (currentQ.options && currentQ.options.length > 0) {
+      return currentQ.options
+    }
+    if (currentQ.type === 'true_false') {
+      return ['True', 'False']
+    }
+    return []
+  }
+
+  const displayOptions = getDisplayOptions()
+  const isFillBlank = currentQ.type === 'fill_blank'
 
   return (
     <div className="page-container max-w-3xl mx-auto animate-fade-in">
@@ -146,31 +164,60 @@ export default function DailyChallenge() {
         <h2 className="text-xl font-display font-bold text-navy-900 dark:text-white mb-6">{currentQ.text}</h2>
 
         <div className="space-y-3">
-          {(currentQ.options || []).map((opt, i) => {
-            const letter = String.fromCharCode(65 + i)
-            const isSelected = selectedAnswer === opt
-            const isCorrect = opt === currentQ.answer
+          {isFillBlank ? (
+            // LOG-07: Input de texto para fill_blank
+            <div className="flex gap-3 items-center">
+              <input
+                type="text"
+                value={fillBlankInput}
+                onChange={e => setFillBlankInput(e.target.value)}
+                disabled={isAnswered}
+                placeholder="Digite sua resposta..."
+                className="input-field flex-1"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && fillBlankInput.trim() && !isAnswered) {
+                    answerQuestion(fillBlankInput.trim())
+                  }
+                }}
+              />
+              {!isAnswered && (
+                <button
+                  onClick={() => fillBlankInput.trim() && answerQuestion(fillBlankInput.trim())}
+                  disabled={!fillBlankInput.trim()}
+                  className="btn-primary px-6"
+                >
+                  Enviar
+                </button>
+              )}
+            </div>
+          ) : (
+            // LOG-06: Corrigido — comparar com .toLowerCase().trim()
+            displayOptions.map((opt, i) => {
+              const letter = String.fromCharCode(65 + i)
+              const isSelected = selectedAnswer === opt
+              const isCorrect = opt.toLowerCase().trim() === currentQ.answer.toLowerCase().trim()
 
-            let cls = 'border-navy-200 dark:border-navy-700 hover:border-gold-500/50 hover:bg-gold-500/5'
-            if (isAnswered && isCorrect) cls = 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
-            if (isAnswered && isSelected && !isCorrect) cls = 'border-red-400 bg-red-50 dark:bg-red-900/20'
-            if (isAnswered && !isCorrect && !isSelected) cls = 'border-navy-200 dark:border-navy-700 opacity-50'
+              let cls = 'border-navy-200 dark:border-navy-700 hover:border-gold-500/50 hover:bg-gold-500/5'
+              if (isAnswered && isCorrect) cls = 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+              if (isAnswered && isSelected && !isCorrect) cls = 'border-red-400 bg-red-50 dark:bg-red-900/20'
+              if (isAnswered && !isCorrect && !isSelected) cls = 'border-navy-200 dark:border-navy-700 opacity-50'
 
-            return (
-              <button key={i} onClick={() => answerQuestion(opt)} disabled={isAnswered}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${cls}`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                  isAnswered && isCorrect ? 'bg-emerald-500 text-white' :
-                  isAnswered && isSelected ? 'bg-red-500 text-white' :
-                  'bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-gray-300'
-                }`}>
-                  {isAnswered && isCorrect ? <CheckCircle size={18} /> :
-                   isAnswered && isSelected ? <XCircle size={18} /> : letter}
-                </div>
-                <span className="font-medium text-navy-800 dark:text-gray-200">{opt}</span>
-              </button>
-            )
-          })}
+              return (
+                <button key={i} onClick={() => answerQuestion(opt)} disabled={isAnswered}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${cls}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${
+                    isAnswered && isCorrect ? 'bg-emerald-500 text-white' :
+                    isAnswered && isSelected ? 'bg-red-500 text-white' :
+                    'bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-gray-300'
+                  }`}>
+                    {isAnswered && isCorrect ? <CheckCircle size={18} /> :
+                     isAnswered && isSelected ? <XCircle size={18} /> : letter}
+                  </div>
+                  <span className="font-medium text-navy-800 dark:text-gray-200">{opt}</span>
+                </button>
+              )
+            })
+          )}
         </div>
 
         {feedback && (

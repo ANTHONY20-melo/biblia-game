@@ -14,7 +14,15 @@ import dailyRoutes from '../backend/src/routes/daily'
 const app = express()
 
 app.use(helmet({ contentSecurityPolicy: false }))
-app.use(cors({ origin: '*', credentials: true }))
+
+// CRIT-04: Usar CORS_ORIGIN do environment em vez de wildcard com credentials
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}))
+
 app.use(express.json({ limit: '1mb' }))
 
 app.use('/api/auth', authRoutes)
@@ -31,6 +39,6 @@ app.get('/api/health', (_req, res) => {
 })
 
 // Vercel serverless handler — SEM Socket.IO (WebSocket não funciona em serverless)
-export default async function handler(req: any, res: any) {
+export default async function handler(req: express.Request, res: express.Response) {
   return app(req, res)
 }

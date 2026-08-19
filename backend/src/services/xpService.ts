@@ -1,4 +1,3 @@
-import { AuthRequest } from '../middlewares/auth'
 import { prisma } from '../prisma'
 
 // ─── XP E NÍVEIS ────────────────────────────────────────
